@@ -11,7 +11,29 @@ function Cocinero() {
     const [mensaje, setMensaje] = useState("");
     const [cargando, setCargando] = useState(true);
 
+    async function leerRespuesta(respuesta) {
+        const contenido = await respuesta.text();
+
+        if (!contenido) {
+            return {};
+        }
+
+        try {
+            return JSON.parse(contenido);
+        } catch {
+            return {
+                mensaje: contenido
+            };
+        }
+    }
+
     async function cargarPedidos() {
+        if (!API_URL) {
+            setMensaje("La URL del servidor no está configurada");
+            setCargando(false);
+            return;
+        }
+
         try {
             setCargando(true);
             setMensaje("");
@@ -20,23 +42,23 @@ function Cocinero() {
                 `${API_URL}/api/pedidos`
             );
 
-            const datos = await respuesta.json();
+            const datos = await leerRespuesta(respuesta);
 
             if (!respuesta.ok) {
                 setMensaje(
                     datos.mensaje ||
-                    "No se pudieron cargar los pedidos"
+                    `No se pudieron cargar los pedidos (${respuesta.status})`
                 );
                 return;
             }
 
-            setPedidos(datos.pedidos || []);
-
-        } catch (error) {
-            console.error(
-                "Error al cargar pedidos:",
-                error
+            setPedidos(
+                Array.isArray(datos.pedidos)
+                    ? datos.pedidos
+                    : []
             );
+        } catch (error) {
+            console.error("Error al cargar pedidos:", error);
 
             setMensaje(
                 "No se pudo conectar con el servidor"
@@ -47,14 +69,6 @@ function Cocinero() {
     }
 
     useEffect(() => {
-        if (!API_URL) {
-            setMensaje(
-                "La URL del servidor no está configurada"
-            );
-            setCargando(false);
-            return;
-        }
-
         cargarPedidos();
     }, []);
 
@@ -71,20 +85,16 @@ function Cocinero() {
             const nuevoPedido = datos?.pedido || datos;
 
             if (!nuevoPedido?._id) {
-                console.error(
-                    "Pedido recibido con formato incorrecto:",
-                    datos
-                );
                 return;
             }
 
             setPedidos((pedidosActuales) => {
-                const pedidoExiste = pedidosActuales.some(
+                const existe = pedidosActuales.some(
                     (pedido) =>
                         pedido._id === nuevoPedido._id
                 );
 
-                if (pedidoExiste) {
+                if (existe) {
                     return pedidosActuales;
                 }
 
@@ -96,12 +106,28 @@ function Cocinero() {
         }
 
         function recibirPedidoActualizado(datos) {
+            const pedidoActualizado =
+                datos?.pedido || datos;
+
+            const id =
+                pedidoActualizado?._id ||
+                datos?.id;
+
+            const estado =
+                pedidoActualizado?.estado ||
+                datos?.estado;
+
+            if (!id || !estado) {
+                return;
+            }
+
             setPedidos((pedidosActuales) =>
                 pedidosActuales.map((pedido) =>
-                    pedido._id === datos.id
+                    pedido._id === id
                         ? {
                               ...pedido,
-                              estado: datos.estado
+                              ...pedidoActualizado,
+                              estado
                           }
                         : pedido
                 )
@@ -109,70 +135,61 @@ function Cocinero() {
         }
 
         function recibirPedidoEliminado(datos) {
+            const id = datos?.id || datos?._id;
+
+            if (!id) {
+                return;
+            }
+
             setPedidos((pedidosActuales) =>
                 pedidosActuales.filter(
-                    (pedido) =>
-                        pedido._id !== datos.id
+                    (pedido) => pedido._id !== id
                 )
             );
         }
 
-        socket.on("connect", () => {
-            console.log(
-                "Cocinero conectado a Socket.IO:",
-                socket.id
-            );
-        });
-
-        socket.on("connect_error", (error) => {
-            console.error(
-                "Error de conexión con Socket.IO:",
-                error.message
-            );
-        });
-
-        socket.on(
-            "nuevoPedido",
-            recibirNuevoPedido
-        );
-
+        socket.on("nuevoPedido", recibirNuevoPedido);
         socket.on(
             "pedidoActualizado",
             recibirPedidoActualizado
         );
-
         socket.on(
             "pedidoEliminado",
             recibirPedidoEliminado
         );
 
-        return () => {
-            socket.off(
-                "nuevoPedido",
-                recibirNuevoPedido
+        socket.on("connect_error", (error) => {
+            console.error(
+                "Error de Socket.IO:",
+                error.message
             );
+        });
 
+        return () => {
+            socket.off("nuevoPedido", recibirNuevoPedido);
             socket.off(
                 "pedidoActualizado",
                 recibirPedidoActualizado
             );
-
             socket.off(
                 "pedidoEliminado",
                 recibirPedidoEliminado
             );
-
             socket.disconnect();
         };
     }, []);
 
-    async function cambiarEstado(
-        id,
-        nuevoEstado
-    ) {
-        setMensaje("");
+    async function cambiarEstado(id, nuevoEstado) {
+        if (!id) {
+            setMensaje(
+                "No se encontró el identificador del pedido"
+            );
+            return;
+        }
 
         try {
+            setMensaje("");
+
             const respuesta = await fetch(
                 `${API_URL}/api/pedidos/${id}`,
                 {
@@ -186,23 +203,30 @@ function Cocinero() {
                 }
             );
 
-            const datos = await respuesta.json();
+            const datos = await leerRespuesta(respuesta);
 
             if (!respuesta.ok) {
                 setMensaje(
                     datos.mensaje ||
-                    "No se pudo actualizar el pedido"
+                    `No se pudo actualizar el pedido (${respuesta.status})`
                 );
                 return;
             }
+
+            const pedidoActualizado =
+                datos.pedido || {
+                    _id: id,
+                    estado: nuevoEstado
+                };
 
             setPedidos((pedidosActuales) =>
                 pedidosActuales.map((pedido) =>
                     pedido._id === id
                         ? {
                               ...pedido,
+                              ...pedidoActualizado,
                               estado:
-                                  datos.pedido?.estado ||
+                                  pedidoActualizado.estado ||
                                   nuevoEstado
                           }
                         : pedido
@@ -210,9 +234,8 @@ function Cocinero() {
             );
 
             setMensaje(
-                "Estado actualizado correctamente"
+                `Pedido actualizado a: ${nuevoEstado}`
             );
-
         } catch (error) {
             console.error(
                 "Error al actualizar pedido:",
@@ -225,31 +248,29 @@ function Cocinero() {
         }
     }
 
-    const pedidosPendientes = pedidos.filter(
-        (pedido) =>
-            pedido.estado === "Pendiente"
-    );
-
-    const pedidosEnPreparacion = pedidos.filter(
-        (pedido) =>
-            pedido.estado === "En preparación"
-    );
-
-    const pedidosListos = pedidos.filter(
-        (pedido) =>
-            pedido.estado === "Listo para recoger"
-    );
-
     const pedidosActivos = pedidos.filter(
         (pedido) =>
             pedido.estado !== "Entregado" &&
             pedido.estado !== "Finalizado"
     );
 
+    const pedidosPendientes = pedidosActivos.filter(
+        (pedido) => pedido.estado === "Pendiente"
+    );
+
+    const pedidosEnPreparacion = pedidosActivos.filter(
+        (pedido) =>
+            pedido.estado === "En preparación"
+    );
+
+    const pedidosListos = pedidosActivos.filter(
+        (pedido) =>
+            pedido.estado === "Listo para recoger"
+    );
+
     return (
         <div className="min-h-screen bg-gray-100 p-6 md:p-8">
             <div className="max-w-7xl mx-auto">
-
                 <header className="mb-8">
                     <h1 className="text-4xl font-bold text-orange-600">
                         Panel del Cocinero
@@ -293,36 +314,24 @@ function Cocinero() {
                 )}
 
                 <section>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-5">
-                        <div>
-                            <h2 className="text-2xl font-bold">
-                                Pedidos recibidos
-                            </h2>
+                    <div className="mb-5">
+                        <h2 className="text-2xl font-bold">
+                            Pedidos recibidos
+                        </h2>
 
-                            <p className="text-gray-500 text-sm mt-1">
-                                Los pedidos aparecen en tiempo real.
-                            </p>
-                        </div>
-
-                        <span className="text-gray-500">
-                            {pedidosActivos.length} activos
-                        </span>
+                        <p className="text-gray-500 mt-1">
+                            Los pedidos aparecen en tiempo real.
+                        </p>
                     </div>
 
                     {cargando ? (
                         <div className="bg-white p-8 rounded-2xl shadow-md text-center">
-                            <p className="text-gray-500">
-                                Cargando pedidos...
-                            </p>
+                            Cargando pedidos...
                         </div>
                     ) : pedidosActivos.length === 0 ? (
                         <div className="bg-white p-10 rounded-2xl shadow-md text-center">
                             <p className="text-2xl font-bold text-gray-700">
                                 No hay pedidos pendientes
-                            </p>
-
-                            <p className="text-gray-500 mt-2">
-                                Los nuevos pedidos aparecerán aquí.
                             </p>
                         </div>
                     ) : (
@@ -332,7 +341,9 @@ function Cocinero() {
                                     key={pedido._id}
                                     pedido={pedido}
                                     tipo="cocinero"
-                                    onCambiarEstado={cambiarEstado}
+                                    onCambiarEstado={
+                                        cambiarEstado
+                                    }
                                 />
                             ))}
                         </div>

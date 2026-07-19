@@ -22,10 +22,16 @@ async function obtenerPedidos() {
 async function actualizarEstadoPedido(id, nuevoEstado) {
     const db = obtenerDB();
 
+    if (!ObjectId.isValid(id)) {
+        throw new Error("ID de pedido inválido");
+    }
+
     return await db
         .collection("pedidos")
         .updateOne(
-            { _id: new ObjectId(id) },
+            {
+                _id: new ObjectId(id)
+            },
             {
                 $set: {
                     estado: nuevoEstado
@@ -36,6 +42,10 @@ async function actualizarEstadoPedido(id, nuevoEstado) {
 
 async function eliminarPedido(id) {
     const db = obtenerDB();
+
+    if (!ObjectId.isValid(id)) {
+        throw new Error("ID de pedido inválido");
+    }
 
     return await db
         .collection("pedidos")
