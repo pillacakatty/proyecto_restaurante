@@ -12,7 +12,9 @@ function CocineroLogin() {
         setMensaje("");
 
         if (!API_URL) {
-            setMensaje("La URL del servidor no está configurada");
+            setMensaje(
+                "La URL del servidor no está configurada"
+            );
             return;
         }
 
