@@ -6,9 +6,6 @@ function Login({ onIngresar }) {
 
     function enviarFormulario(evento) {
         evento.preventDefault();
-
-        console.log("Enviando desde Login:", correo, password);
-
         onIngresar(correo, password);
     }
 
@@ -29,7 +26,9 @@ function Login({ onIngresar }) {
                 <input
                     type="email"
                     value={correo}
-                    onChange={(evento) => setCorreo(evento.target.value)}
+                    onChange={(evento) =>
+                        setCorreo(evento.target.value)
+                    }
                     placeholder="Ingrese su correo"
                     required
                     className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -44,7 +43,9 @@ function Login({ onIngresar }) {
                 <input
                     type="password"
                     value={password}
-                    onChange={(evento) => setPassword(evento.target.value)}
+                    onChange={(evento) =>
+                        setPassword(evento.target.value)
+                    }
                     placeholder="Ingrese su contraseña"
                     required
                     className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"

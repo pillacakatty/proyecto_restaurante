@@ -6,8 +6,6 @@ import PedidoCard from "../components/PedidoCard";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const socket = io(API_URL);
-
 function Cocinero() {
     const [pedidos, setPedidos] = useState([]);
     const [mensaje, setMensaje] = useState("");
@@ -49,14 +47,41 @@ function Cocinero() {
     }
 
     useEffect(() => {
+        if (!API_URL) {
+            setMensaje(
+                "La URL del servidor no está configurada"
+            );
+            setCargando(false);
+            return;
+        }
+
         cargarPedidos();
     }, []);
 
     useEffect(() => {
+        if (!API_URL) {
+            return;
+        }
+
+        const socket = io(API_URL, {
+            transports: ["websocket", "polling"]
+        });
+
         function recibirNuevoPedido(datos) {
+            const nuevoPedido = datos?.pedido || datos;
+
+            if (!nuevoPedido?._id) {
+                console.error(
+                    "Pedido recibido con formato incorrecto:",
+                    datos
+                );
+                return;
+            }
+
             setPedidos((pedidosActuales) => {
                 const pedidoExiste = pedidosActuales.some(
-                    (pedido) => pedido._id === datos.pedido._id
+                    (pedido) =>
+                        pedido._id === nuevoPedido._id
                 );
 
                 if (pedidoExiste) {
@@ -64,7 +89,7 @@ function Cocinero() {
                 }
 
                 return [
-                    datos.pedido,
+                    nuevoPedido,
                     ...pedidosActuales
                 ];
             });
@@ -86,10 +111,25 @@ function Cocinero() {
         function recibirPedidoEliminado(datos) {
             setPedidos((pedidosActuales) =>
                 pedidosActuales.filter(
-                    (pedido) => pedido._id !== datos.id
+                    (pedido) =>
+                        pedido._id !== datos.id
                 )
             );
         }
+
+        socket.on("connect", () => {
+            console.log(
+                "Cocinero conectado a Socket.IO:",
+                socket.id
+            );
+        });
+
+        socket.on("connect_error", (error) => {
+            console.error(
+                "Error de conexión con Socket.IO:",
+                error.message
+            );
+        });
 
         socket.on(
             "nuevoPedido",
@@ -121,10 +161,15 @@ function Cocinero() {
                 "pedidoEliminado",
                 recibirPedidoEliminado
             );
+
+            socket.disconnect();
         };
     }, []);
 
-    async function cambiarEstado(id, nuevoEstado) {
+    async function cambiarEstado(
+        id,
+        nuevoEstado
+    ) {
         setMensaje("");
 
         try {
@@ -181,7 +226,8 @@ function Cocinero() {
     }
 
     const pedidosPendientes = pedidos.filter(
-        (pedido) => pedido.estado === "Pendiente"
+        (pedido) =>
+            pedido.estado === "Pendiente"
     );
 
     const pedidosEnPreparacion = pedidos.filter(
