@@ -1,0 +1,17 @@
+# Dependencias
+backend/node_modules/
+frontend/node_modules/
+
+# Variables de entorno
+backend/.env
+frontend/.env
+
+# Archivos generados
+backend/dist/
+frontend/dist/
+
+# Archivos del sistema
+.DS_Store
+
+# Configuración de VS Code
+.vscode/
