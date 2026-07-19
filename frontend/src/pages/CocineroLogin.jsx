@@ -11,6 +11,11 @@ function CocineroLogin() {
     async function ingresarCocinero(correo, password) {
         setMensaje("");
 
+        if (!API_URL) {
+            setMensaje("La URL del servidor no está configurada");
+            return;
+        }
+
         try {
             const respuesta = await fetch(
                 `${API_URL}/api/auth/login`,
@@ -26,11 +31,22 @@ function CocineroLogin() {
                 }
             );
 
-            const datos = await respuesta.json();
+            const tipoContenido =
+                respuesta.headers.get("content-type");
+
+            const datos = tipoContenido?.includes(
+                "application/json"
+            )
+                ? await respuesta.json()
+                : {
+                      mensaje:
+                          "El servidor devolvió una respuesta no válida"
+                  };
 
             if (!respuesta.ok) {
                 setMensaje(
-                    datos.mensaje || "No se pudo iniciar sesión"
+                    datos.mensaje ||
+                    "No se pudo iniciar sesión"
                 );
                 return;
             }
