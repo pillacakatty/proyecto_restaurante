@@ -17,7 +17,7 @@ async function iniciarServidor() {
 
         const io = new Server(servidorHttp, {
             cors: {
-                origin: "http://localhost:5173",
+                origin: process.env.FRONTEND_URL || "http://localhost:5173",
                 methods: ["GET", "POST", "PUT"]
             }
         });
@@ -32,14 +32,13 @@ async function iniciarServidor() {
             });
         });
 
-        servidorHttp.listen(PORT, () => {
-            console.log(
-                `Servidor ejecutándose en http://localhost:${PORT}`
-            );
+        servidorHttp.listen(PORT, "0.0.0.0", () => {
+            console.log(`Servidor ejecutándose en el puerto ${PORT}`);
         });
 
     } catch (error) {
-        console.error("No se pudo iniciar el servidor");
+        console.error("No se pudo iniciar el servidor:", error);
+        process.exit(1);
     }
 }
 
