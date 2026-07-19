@@ -5,6 +5,7 @@ import Login from "../components/Login";
 function CocineroLogin() {
     const [mensaje, setMensaje] = useState("");
     const navigate = useNavigate();
+    const API_URL = import.meta.env.VITE_API_URL;
 
     async function ingresarCocinero(correo, password) {
         console.log("Entró a ingresarCocinero");
@@ -14,8 +15,8 @@ function CocineroLogin() {
         setMensaje("");
 
         try {
-            const respuesta = await fetch(
-                "http://localhost:3000/api/auth/login",
+            const respuesta = 
+            fetch(`${API_URL}/login`,
                 {
                     method: "POST",
                     headers: {

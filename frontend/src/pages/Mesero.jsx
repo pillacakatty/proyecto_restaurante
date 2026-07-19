@@ -5,7 +5,9 @@ import DashboardCard from "../components/DashboardCard";
 import NuevoPedido from "../components/NuevoPedido";
 import PedidoCard from "../components/PedidoCard";
 
-const socket = io("http://localhost:3000");
+const API_URL = import.meta.env.VITE_API_URL;
+
+const socket = io(API_URL);
 
 function Mesero() {
     const [pedidos, setPedidos] = useState([]);
@@ -46,7 +48,7 @@ function Mesero() {
             setMensaje("");
 
             const respuesta = await fetch(
-                "http://localhost:3000/api/pedidos"
+                `${API_URL}/api/pedidos`
             );
 
             const datos = await respuesta.json();
@@ -126,7 +128,7 @@ function Mesero() {
 
         try {
             const respuesta = await fetch(
-                "http://localhost:3000/api/pedidos",
+                `${API_URL}/api/pedidos`,
                 {
                     method: "POST",
                     headers: {
@@ -177,7 +179,7 @@ function Mesero() {
 
         try {
             const respuesta = await fetch(
-                `http://localhost:3000/api/pedidos/${id}`,
+                `${API_URL}/api/pedidos/${id}`,
                 {
                     method: "DELETE"
                 }

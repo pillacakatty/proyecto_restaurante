@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:3000");
+const API_URL = import.meta.env.VITE_API_URL;
+
+const socket = io(API_URL);
 
 function Cocinero() {
     const [pedidos, setPedidos] = useState([]);
     const [mensaje, setMensaje] = useState("");
     const [cargando, setCargando] = useState(true);
+  const API_URL = import.meta.env.VITE_API_URL;
 
     async function cargarPedidos() {
         try {
             setCargando(true);
 
-            const respuesta = await fetch(
-                "http://localhost:3000/api/pedidos"
+            const respuesta = await 
+                fetch(`${API_URL}/login`
+
             );
 
             const datos = await respuesta.json();
@@ -104,7 +108,7 @@ function Cocinero() {
 
         try {
             const respuesta = await fetch(
-                `http://localhost:3000/api/pedidos/${id}/estado`,
+              `${API_URL}/login`,
                 {
                     method: "PUT",
                     headers: {
