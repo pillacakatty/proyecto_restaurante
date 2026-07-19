@@ -15,12 +15,12 @@ function Inicio() {
         </p>
 
         <div className="space-y-4">
-          <Link to="/MeseroLogin">
+          <Link to="/login-mesero">
           <button className="w-full bg-blue-600 text-white py-3 rounded-lg">
             Ingresar como Mesero
           </button>
           </Link>
-          <Link to="/CocineroLogin">
+          <Link to="/login-cocinero">
           <button className="w-full bg-green-600 text-white py-3 rounded-lg">
             Ingresar como Cocinero
           </button>
