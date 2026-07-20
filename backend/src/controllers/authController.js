@@ -1,11 +1,9 @@
+import bcrypt from "bcryptjs";
 import { buscarUsuarioPorCorreo } from "../models/authModel.js";
 
 async function login(req, res) {
     try {
         const { correo, password } = req.body || {};
-
-        console.log("Correo enviado:", correo);
-        console.log("Contraseña enviada:", password);
 
         if (!correo || !password) {
             return res.status(400).json({
@@ -16,21 +14,22 @@ async function login(req, res) {
 
         const usuario = await buscarUsuarioPorCorreo(correo);
 
-        console.log("Usuario encontrado:", usuario);
-
         if (!usuario) {
             return res.status(401).json({
                 ok: false,
-                mensaje: "El correo no existe en la base de datos"
+                mensaje: "Correo o contraseña incorrectos"
             });
         }
 
-        console.log("Contraseña guardada:", usuario.password);
+        const passwordCorrecta = await bcrypt.compare(
+            password,
+            usuario.password
+        );
 
-        if (usuario.password !== password) {
+        if (!passwordCorrecta) {
             return res.status(401).json({
                 ok: false,
-                mensaje: "La contraseña es incorrecta"
+                mensaje: "Correo o contraseña incorrectos"
             });
         }
 
@@ -46,8 +45,7 @@ async function login(req, res) {
 
         return res.status(500).json({
             ok: false,
-            mensaje: "Error interno del servidor",
-            error: error.message
+            mensaje: "Error interno del servidor"
         });
     }
 }
